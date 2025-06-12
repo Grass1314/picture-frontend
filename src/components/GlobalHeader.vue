@@ -32,7 +32,7 @@
                   <a-menu>
                     <a-menu-item key="1">
                       <EditOutlined />
-                      修改个人信息
+                      个人中心
                     </a-menu-item>
                     <a-menu-item key="2" @click="doLoginOut">
                       <LogoutOutlined />
