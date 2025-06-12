@@ -58,6 +58,8 @@ import { MenuProps, message } from 'ant-design-vue'
 import { useRouter } from 'vue-router'
 import { useLoginUserStore } from '@/stores/useLoginUserStores.ts'
 import { userLogoutUsingPost } from '@/api/userController.ts'
+import checkAccess from '@/access/checkAccess.ts'
+import ACCESS_ENUM from '@/access/accessEnum.ts'
 
 const loginUserStore = useLoginUserStore()
 loginUserStore.fetchLoginUser()
@@ -76,6 +78,10 @@ const originItems = [
     key: '/admin/userManage',
     label: '用户管理',
     title: '用户管理',
+    meta: {
+      access: ACCESS_ENUM.ADMIN, // 管理员权限
+      hideInMenu:  false, // 隐藏菜单
+    },
   },
   {
     key: '/about',
@@ -92,14 +98,29 @@ const originItems = [
 // 过滤掉无权限的菜单
 const filterMenus = (menus = [] as MenuProps['items']) => {
   return menus?.filter((menu) => {
-    if (typeof menu?.key === 'string' && menu.key.startsWith('/admin')) {
-      const loginUser = loginUserStore.loginUser
-      if (!loginUser || loginUser.userRole !== 'admin') {
-        return false
-      }
+    // 无权限则返回 false，则不保留该菜单
+    const item = menuToRouteItem(menu);
+    if (item.meta?.hideInMenu) {
+      return false;
     }
-    return true
+    // 根据权限过滤菜单，有权限则返回 true，则保留该菜单
+    return checkAccess(loginUserStore.loginUser, item.meta?.access as string);
   })
+}
+
+// 实现 menu 到路由 item 的转化
+const menuToRouteItem = (menu) => {
+  return {
+    key: menu.key,
+    icon: menu.icon,
+    label: menu.label,
+    title: menu.title,
+    meta: {
+      access: menu.meta?.access,
+      hideInMenu: menu.meta?.hideInMenu,
+    },
+    children: menu.children?.map(menuToRouteItem),
+  }
 }
 
 // 展示在菜单的路由数组

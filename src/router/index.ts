@@ -3,6 +3,8 @@ import HomePage from '@/pages/HomePage.vue'
 import UserLoginPage from '@/pages/user/UserLoginPage.vue'
 import UserRegisterPage from '@/pages/user/UserRegisterPage.vue'
 import UserManagePage from '@/pages/admin/UserManagePage.vue'
+import NotAuthPage from '@/pages/NoAuthPage.vue'
+import ACCESS_ENUM from '@/access/accessEnum.ts'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -26,6 +28,9 @@ const router = createRouter({
       path: '/admin/userManage',
       name: '用户管理',
       component: UserManagePage,
+      meta: {
+        access: ACCESS_ENUM.ADMIN,
+      },
     },
     {
       path: '/about',
@@ -34,6 +39,11 @@ const router = createRouter({
       // this generates a separate chunk (About.[hash].js) for this route
       // which is lazy-loaded when the route is visited.
       component: () => import('../views/AboutView.vue'),
+    },
+    {
+      path: '/',
+      name: 'noAuth',
+      component: NotAuthPage,
     },
   ],
 })
