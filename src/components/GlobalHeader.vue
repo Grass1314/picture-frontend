@@ -23,34 +23,59 @@
         <div class="user-login-status">
           <div class="user-login-status">
             <div v-if="loginUserStore.loginUser.id">
-              {{ loginUserStore.loginUser.userName ?? '无名' }}
+              <a-dropdown>
+                <a-space>
+                  <a-avatar src="loginUserStore.loginUser.userAvatar" />
+                  {{ loginUserStore.loginUser.userName ?? '无名' }}
+                </a-space>
+                <template #overlay>
+                  <a-menu>
+                    <a-menu-item key="1">
+                      <EditOutlined />
+                      修改个人信息
+                    </a-menu-item>
+                    <a-menu-item key="2" @click="doLoginOut">
+                      <LogoutOutlined />
+                      退出登录
+                    </a-menu-item>
+                  </a-menu>
+                </template>
+              </a-dropdown>
             </div>
             <div v-else>
               <a-button type="primary" href="/user/login">登录</a-button>
             </div>
           </div>
-
         </div>
       </a-col>
     </a-row>
   </div>
 </template>
 <script lang="ts" setup>
-import { h, ref } from 'vue'
-import { HomeOutlined } from '@ant-design/icons-vue'
-import { MenuProps } from 'ant-design-vue'
+import { computed, h, ref } from 'vue'
+import { HomeOutlined, LogoutOutlined, EditOutlined } from '@ant-design/icons-vue'
+import { MenuProps, message } from 'ant-design-vue'
 import { useRouter } from 'vue-router'
 import { useLoginUserStore } from '@/stores/useLoginUserStores.ts'
+import { userLogoutUsingPost } from '@/api/userController.ts'
 
 const loginUserStore = useLoginUserStore()
 loginUserStore.fetchLoginUser()
 const current = ref<string[]>([])
-const items = ref<MenuProps['items']>([
+const router = useRouter()
+
+// 菜单项
+const originItems = [
   {
     key: '/',
     icon: () => h(HomeOutlined),
     label: '主页',
     title: '主页',
+  },
+  {
+    key: '/admin/userManage',
+    label: '用户管理',
+    title: '用户管理',
   },
   {
     key: '/about',
@@ -62,14 +87,45 @@ const items = ref<MenuProps['items']>([
     label: h('a', { href: 'https://www.codefather.cn', target: '_blank' }, '编程导航'),
     title: '编程导航',
   },
-])
+]
 
-const router = useRouter()
+// 过滤掉无权限的菜单
+const filterMenus = (menus = [] as MenuProps['items']) => {
+  return menus?.filter((menu) => {
+    if (typeof menu?.key === 'string' && menu.key.startsWith('/admin')) {
+      const loginUser = loginUserStore.loginUser
+      if (!loginUser || loginUser.userRole !== 'admin') {
+        return false
+      }
+    }
+    return true
+  })
+}
+
+// 展示在菜单的路由数组
+const items = computed<MenuProps['items']>(() => filterMenus(originItems))
+
 // 路由跳转事件
 const doMenuClick = ({ key }) => {
-  router.push({
-    path: key,
+  router.push({ path: key }).catch((err) => {
+    console.error('路由跳转失败:', err)
   })
+}
+
+// 退出登录
+const doLoginOut = async () => {
+  const res = await userLogoutUsingPost()
+  if (res.data.code === 0) {
+    loginUserStore.setLoginUser({
+      userName: '未登录',
+    })
+    message.success('退出登录成功')
+    await router.push({
+      path: '/user/login',
+    })
+  } else {
+    message.error('退出登录失败，' + res.data.message)
+  }
 }
 
 // 回调钩子 当前要高亮的菜单项
